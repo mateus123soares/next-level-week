@@ -2,6 +2,23 @@ import Knex from '../database/connection'
 import { Request, Response } from 'express'
 
 class pointsControllers {
+
+    async index(req:Request,res:Response){
+        const {city,uf,items} = req.query;
+
+        const parsedItems = String(items).split(',').map(item => Number(item.trim()))
+
+        const points = await Knex('points')
+        .join('point-items','points.id','=','point-items.point_id')
+        .whereIn('point-items.item_id',parsedItems)
+        .where('city',String(city))
+        .where('uf',String(uf))
+        .distinct()
+        .select('points.*')
+
+        res.json(points)
+    }
+
     async show(req:Request, res:Response) {
 
         const {id} = req.params
@@ -25,7 +42,7 @@ class pointsControllers {
         const trx = await Knex.transaction();
         
         const point = {
-            image: 'image-fake',
+            image: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60',
             name,
             email,
             whatsapp,
@@ -46,7 +63,9 @@ class pointsControllers {
             }
         });
 
-        const addItems = await trx('point-items').insert(pointsItems)
+        const addItems = await trx('point-items').insert(pointsItems);
+
+        trx.commit();
 
         return res.json({ id:point_id,...point, });
     }
